@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="tech.yuliu.dao.WordDao">
+
+    <resultMap id="BaseResultMap" type="tech.yuliu.bean.Word">
+        <result column="id" jdbcType="INTEGER" property="id"/>
+        <result column="content" jdbcType="VARCHAR" property="content"/>
+        <result column="category" jdbcType="VARCHAR" property="category"/>
+        <result column="tran" jdbcType="VARCHAR" property="tran"/>
+        <result column="pron_uk" jdbcType="VARCHAR" property="pronUk"/>
+        <result column="pron_us" jdbcType="VARCHAR" property="pronUs"/>
+        <result column="sentence" jdbcType="VARCHAR" property="sentence"/>
+        <result column="sentence_cn" jdbcType="VARCHAR" property="sentenceCn"/>
+    </resultMap>
+
+    <select id="firstExtractWord" resultMap="BaseResultMap">
+        SELECT t1.`id`,
+               t1.`content`,
+               t1.`category`,
+               t1.`tran`,
+               t1.`pron_uk`,
+               t1.`pron_us`,
+               t1.`sentence`,
+               t1.`sentence_cn`
+        FROM `word` AS t1
+                 JOIN (SELECT ROUND(RAND() * ((
+                                                  SELECT MAX(id)
+                                                  FROM `word`
+                                                  WHERE `category` = #{category}
+                                              ) - (
+                                                  SELECT MIN(id)
+                                                  FROM `word`
+                                                  WHERE `category` = #{category}
+                                              )) + (
+                                        SELECT MIN(id)
+                                        FROM `word`
+                                        WHERE `category` = #{category}
+                                    )) AS `id`
+        ) AS t2
+        WHERE t1.`id` >= t2.`id`
+        ORDER BY t1.`id` LIMIT #{wordNumber};
+    </select>
+
+    <select id="extractUnlearnedWord" resultMap="BaseResultMap">
+        SELECT t1.`id`,
+               t1.`content`,
+               t1.`category`,
+               t1.`tran`,
+               t1.`pron_uk`,
+               t1.`pron_us`,
+               t1.`sentence`,
+               t1.`sentence_cn`
+        FROM `word` AS t1
+                 JOIN (SELECT ROUND(RAND() * ((SELECT MAX(id) FROM `word` WHERE category = #{category}) -
+                                              (SELECT MIN(id) FROM `word` WHERE category = #{category})) +
+                                    (SELECT MIN(id) FROM `word` WHERE category = #{category})) AS `id`
+        ) AS t2
+        WHERE t1.`id` >= t2.`id`
+          AND t1.`id` NOT IN (SELECT DISTINCT `word_id` FROM `learn` WHERE `user_id` = #{userId})
+        ORDER BY t1.`id` LIMIT #{wordNumber}
+    </select>
+
+    <select id="selectWordByIdList" resultMap="BaseResultMap">
+        SELECT `id`,
+        `content`,
+        `category`,
+        `tran`,
+        `pron_uk`,
+        `pron_us`,
+        `sentence`,
+        `sentence_cn` from `word` where `id` in
+        <foreach collection="wordIdList" item="item" open="(" separator="," close=")">
+            #{item}
+        </foreach>
+    </select>
+
+</mapper>

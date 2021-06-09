@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="tech.yuliu.dao.ScheduleDao">
+    <resultMap id="ScheduleResultMap" type="tech.yuliu.bean.Schedule">
+        <result column="id" jdbcType="INTEGER" property="id"/>
+        <result column="user_id" jdbcType="INTEGER" property="userId"/>
+        <result column="word_id" jdbcType="INTEGER" property="wordId"/>
+        <result column="count" jdbcType="INTEGER" property="count"/>
+        <result column="time" jdbcType="INTEGER" property="time"/>
+        <result column="threshold_time" jdbcType="INTEGER" property="thresholdTime"/>
+        <result column="low_threshold_time" jdbcType="INTEGER" property="lowThresholdTime"/>
+    </resultMap>
+
+    <resultMap id="WordResultMap" type="tech.yuliu.bean.Word">
+        <result column="id" jdbcType="INTEGER" property="id"/>
+        <result column="content" jdbcType="VARCHAR" property="content"/>
+        <result column="category" jdbcType="VARCHAR" property="category"/>
+        <result column="tran" jdbcType="VARCHAR" property="tran"/>
+        <result column="pron_uk" jdbcType="VARCHAR" property="pronUk"/>
+        <result column="pron_us" jdbcType="VARCHAR" property="pronUs"/>
+        <result column="sentence" jdbcType="VARCHAR" property="sentence"/>
+        <result column="sentence_cn" jdbcType="VARCHAR" property="sentenceCn"/>
+    </resultMap>
+
+    <insert id="insertSchedule">
+        insert into `schedule`(`user_id`, `word_id`, `count`, `time`, `threshold_time`, `low_threshold_time`)
+        values (#{userId}, #{wordId}, #{count}, #{time}, #{thresholdTime}, #{lowThresholdTime})
+    </insert>
+
+    <insert id="insertManySchedule">
+        insert into `schedule`(`user_id`, `word_id`, `count`, `time`, `threshold_time`, `low_threshold_time`)
+        values
+        <foreach collection="scheduleList" separator="," item="item">
+            (#{item.userId}, #{item.wordId}, #{item.count}, #{item.time},
+            #{item.thresholdTime}, #{item.lowThresholdTime})
+        </foreach>
+        on duplicate key update
+        `count` = values(`count`),
+        `time` = values(`time`),
+        `threshold_time` = values(`threshold_time`),
+        `low_threshold_time` =values(`low_threshold_time`)
+    </insert>
+    <update id="updateManySchedule">
+        select *
+        from schedule;
+    </update>
+
+    <select id="selectWordUnderLowThresholdTime" resultMap="WordResultMap">
+        SELECT `id`,
+               `content`,
+               `category`,
+               `tran`,
+               `pron_uk`,
+               `pron_us`,
+               `sentence`,
+               `sentence_cn`
+        FROM word
+                 JOIN (
+            SELECT `schedule`.`word_id`
+            FROM `schedule`
+            WHERE user_id = #{userId}
+              AND word_id IN (SELECT word.id
+                              FROM word
+                                       JOIN `user` ON word.category = `user`.learning
+                              WHERE `user`.id =
+                                    #{userId})
+              AND low_threshold_time &lt; UNIX_TIMESTAMP()
+            ORDER BY UNIX_TIMESTAMP() - low_threshold_time DESC
+        ) AS t1 ON word.id = t1.word_id;
+    </select>
+
+    <select id="selectWordBetweenLowThresholdTimeAndThresholdTime" resultType="tech.yuliu.bean.Word">
+        SELECT `id`,
+               `content`,
+               `category`,
+               `tran`,
+               `pron_uk`,
+               `pron_us`,
+               `sentence`,
+               `sentence_cn`
+        FROM word
+                 JOIN (
+            SELECT `schedule`.`word_id`
+            FROM `schedule`
+            WHERE user_id = #{userId}
+              AND word_id IN (SELECT word.id
+                              FROM word
+                                       JOIN `user` ON word.category = `user`.learning
+                              WHERE `user`.id =
+                                    #{userId})
+              AND UNIX_TIMESTAMP() BETWEEN threshold_time
+                AND low_threshold_time
+            ORDER BY UNIX_TIMESTAMP() - low_threshold_time DESC
+        ) AS t1 ON word.id = t1.word_id;
+    </select>
+
+    <select id="selectWordHigherThresholdTime" resultType="tech.yuliu.bean.Word">
+        SELECT `id`,
+               `content`,
+               `category`,
+               `tran`,
+               `pron_uk`,
+               `pron_us`,
+               `sentence`,
+               `sentence_cn`
+        FROM word
+                 JOIN (
+            SELECT `schedule`.`word_id`
+            FROM `schedule`
+            WHERE user_id = #{userId}
+              AND word_id IN (SELECT word.id
+                              FROM word
+                                       JOIN `user` ON word.category = `user`.learning
+                              WHERE `user`.id =
+                                    #{userId})
+              AND threshold_time &gt; UNIX_TIMESTAMP()
+        ) AS t1 ON word.id = t1.word_id;
+    </select>
+</mapper>

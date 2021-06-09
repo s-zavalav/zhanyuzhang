@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="tech.yuliu.dao.ChoiceDao">
+    <resultMap id="BaseResultMap" type="tech.yuliu.bean.Choice">
+        <result column="id" jdbcType="INTEGER" property="id"/>
+        <result column="user_id" jdbcType="INTEGER" property="userId"/>
+        <result column="category" jdbcType="VARCHAR" property="category"/>
+        <result column="learn" jdbcType="INTEGER" property="learn"/>
+        <result column="review" jdbcType="INTEGER" property="review"/>
+    </resultMap>
+    <insert id="insertChoice">
+        insert into `choice`(`user_id`, `category`, `learn`, `review`)
+        values (#{userId}, #{category}, #{learn}, #{review})
+    </insert>
+
+    <update id="updateLearnById">
+        update `choice`
+        set `learn`  = #{learn},
+            `review` = #{review}
+        where `id` = #{id}
+    </update>
+
+    <update id="updateLearnByUserIdAndCategory">
+        update `choice`
+        set `learn`  = #{learn},
+            `review` = #{review}
+        where `user_id` = #{userId}
+          and `category` = #{category}
+    </update>
+
+    <delete id="deleteChoiceById">
+        delete
+        from `choice`
+        where `id` = #{id}
+    </delete>
+
+    <delete id="deleteChoiceByUserIdAndCategory">
+        delete
+        from `choice`
+        where `user_id` = #{userId}
+          and `category` = #{category}
+    </delete>
+
+    <select id="selectAllSelectedByUserId" resultMap="BaseResultMap">
+        select `id`, `user_id`, `category`, `learn`, `review`
+        from `choice`
+        where `user_id` = #{userId}
+    </select>
+
+    <select id="selectAllCategory" resultType="java.lang.String">
+        select distinct `category`
+        from `word`
+    </select>
+
+    <select id="selectChoiceByUserIdAndCategory" resultMap="BaseResultMap">
+        select `id`, `user_id`, `category`, `learn`, `review`
+        from `choice`
+        where `user_id` = #{userId}
+          and `category` = #{category}
+    </select>
+
+    <select id="selectAllChoiceByUserId" resultMap="BaseResultMap">
+        select `id`, `user_id`, `category`, `learn`, `review`
+        from `choice`
+        where `user_id` = #{userId}
+    </select>
+
+    <select id="selectChoiceByChoiceId" resultMap="BaseResultMap">
+        select `id`, `user_id`, `category`, `learn`, `review`
+        from `choice`
+        where `id` = #{choiceId}
+    </select>
+
+    <select id="selectLearningWordNumber" resultType="java.lang.Integer">
+        select `choice`.`learn`
+        from `user`
+                 join `choice` on `user`.`learning` = `choice`.`category` and `user`.`id` = `choice`.`user_id`
+        where `choice`.user_id = #{userId}
+    </select>
+
+    <select id="selectReviewWordNumber" resultType="java.lang.Integer">
+        SELECT `choice`.`review`
+        FROM `user`
+                 JOIN `choice` ON `user`.`learning` = `choice`.`category`
+            AND `user`.`id` = `choice`.`user_id`
+        WHERE `choice`.user_id = #{userId}
+    </select>
+</mapper>
